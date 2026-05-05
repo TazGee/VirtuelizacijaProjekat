@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Server.Services;
+using System;
+using System.ServiceModel;
 
 namespace Server
 {
@@ -6,9 +8,16 @@ namespace Server
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Server se pokrenuo!");
+            using (ServiceHost host = new ServiceHost(typeof(ConsumptionService)))
+            {
+                host.Open();
 
-            Console.ReadKey();
+                Console.WriteLine("Server je pokrenut.");
+                Console.WriteLine("Pritisni ENTER za gasenje servera.");
+                Console.ReadLine();
+
+                host.Close();
+            }
         }
     }
 }
