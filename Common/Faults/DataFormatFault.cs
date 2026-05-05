@@ -1,12 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Runtime.Serialization;
 
 namespace Common.Faults
 {
-    internal class DataFormatFault
+    [DataContract]
+    public class DataFormatFault
     {
+        public DataFormatFault()
+        {
+        }
+
+        public DataFormatFault(string message)
+        {
+            Message = message;
+        }
+
+        [DataMember]
+        public string Message { get; set; }
     }
 }
