@@ -1,7 +1,7 @@
 <Solution>
   <Project Path="Client/Client.csproj" Id="1df732bf-8a8f-4acc-9665-4610bad9c484" />
   <Project Path="Common/Common.csproj" Id="6db8b1dd-51e1-4e69-8a25-679d2a558819" />
-  <Project Path="Server/" Type="Website" DisplayName="Server">
+  <Project Path="Server/" Type="Website">
     <BuildType Project="Debug" />
     <Properties Name="WebsiteProperties">
       <Property Name="Debug.AspNetCompiler.Debug" Value="&quot;True&quot;" />
@@ -23,4 +23,5 @@
       <Property Name="VWDPort" Value="&quot;57110&quot;" />
     </Properties>
   </Project>
+  <Project Path="Server/Server.csproj" Id="950d5836-05fd-4d6e-a1f5-254c8a404011" />
 </Solution>

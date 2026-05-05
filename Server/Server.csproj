@@ -43,11 +43,32 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Analytics\FlatlineDetector.cs" />
+    <Compile Include="Analytics\LoadFactorAnalyzer.cs" />
+    <Compile Include="Analytics\SpikeDetector.cs" />
+    <Compile Include="Config\AppSettingsReader.cs" />
+    <Compile Include="Events\Delegates.cs" />
+    <Compile Include="Events\EventArgs\BatchReceivedEventArgs.cs" />
+    <Compile Include="Events\EventArgs\TransferEventArgs.cs" />
+    <Compile Include="Events\EventArgs\WarningEventArgs.cs" />
+    <Compile Include="Events\EventManager.cs" />
+    <Compile Include="Obrada\ObradaBatcha.cs" />
+    <Compile Include="Obrada\ValidationService.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Resources\DisposableResources.cs" />
+    <Compile Include="Services\ConsumptionService.cs" />
+    <Compile Include="Storage\FileStorage.cs" />
+    <Compile Include="Storage\PathManager.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Common\Common.csproj">
+      <Project>{6db8b1dd-51e1-4e69-8a25-679d2a558819}</Project>
+      <Name>Common</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
