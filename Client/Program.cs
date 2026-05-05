@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Client.Services;
+using Common.Models;
+using System;
 
 namespace Client
 {
@@ -10,6 +8,11 @@ namespace Client
     {
         static void Main(string[] args)
         {
+            Console.WriteLine("Klijent se pokrenuo!");
+
+
+
+            Console.ReadKey();
         }
     }
 }
