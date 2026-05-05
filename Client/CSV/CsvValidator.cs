@@ -1,0 +1,6 @@
+﻿namespace Client.CSV
+{
+    internal class CsvValidator
+    {
+    }
+}
