@@ -43,8 +43,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Config\AppSettingsReader.cs" />
+    <Compile Include="CSV\CsvParser.cs" />
+    <Compile Include="CSV\CsvReader.cs" />
+    <Compile Include="CSV\CsvValidator.cs" />
+    <Compile Include="Filters\DataFilter.cs" />
+    <Compile Include="Processing\BatchBuilder.cs" />
+    <Compile Include="Processing\SampleBuilder.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Services\ConsumptionClient.cs" />
+    <Compile Include="Storage\RejectedWriter.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
