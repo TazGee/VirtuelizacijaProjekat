@@ -46,10 +46,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Analytics\ConsumptionAnalytics.cs" />
     <Compile Include="Analytics\FlatlineDetector.cs" />
     <Compile Include="Analytics\LoadFactorAnalyzer.cs" />
     <Compile Include="Analytics\SpikeDetector.cs" />
     <Compile Include="Config\AppSettingsReader.cs" />
+    <Compile Include="Events\ConsoleEventSubscriber.cs" />
     <Compile Include="Events\Delegates.cs" />
     <Compile Include="Events\EventArgs\BatchReceivedEventArgs.cs" />
     <Compile Include="Events\EventArgs\TransferEventArgs.cs" />
@@ -63,6 +65,7 @@
     <Compile Include="Services\ConsumptionService.cs" />
     <Compile Include="Storage\FileStorage.cs" />
     <Compile Include="Storage\PathManager.cs" />
+    <Compile Include="Storage\ServerRejectedWriter.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

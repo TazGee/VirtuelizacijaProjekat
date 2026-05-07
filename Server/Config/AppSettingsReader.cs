@@ -1,45 +1,46 @@
 ﻿using System;
 using System.Configuration;
+using System.Globalization;
 
-namespace Client.Config
+namespace Server.Config
 {
-    public class AppSettingsReader
+    public class ServerSettingsReader
     {
-        public string CsvPath { get; private set; }
-        public string CountryCode { get; private set; }
-        public DateTime SelectedDate { get; private set; }
-        public int BatchSize { get; private set; }
+        public double LoadFactorMin { get; private set; }
+        public double FlatlineEpsilon { get; private set; }
+        public int FlatlineWindowSamples { get; private set; }
+        public double SpikeDeltaMW { get; private set; }
 
-        public AppSettingsReader()
+        public ServerSettingsReader()
         {
-            CsvPath = ConfigurationManager.AppSettings["CsvPath"];
-            CountryCode = ConfigurationManager.AppSettings["CountryCode"];
+            LoadFactorMin = ReadDouble("LoadFactorMin");
+            FlatlineEpsilon = ReadDouble("FlatlineEpsilon");
+            FlatlineWindowSamples = ReadInt("FlatlineWindowSamples");
+            SpikeDeltaMW = ReadDouble("SpikeDeltaMW");
+        }
 
-            string selectedDateText = ConfigurationManager.AppSettings["SelectedDate"];
-            string batchSizeText = ConfigurationManager.AppSettings["BatchSize"];
+        private double ReadDouble(string key)
+        {
+            string value = ConfigurationManager.AppSettings[key];
 
-            if (string.IsNullOrWhiteSpace(CsvPath))
+            if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double result))
             {
-                throw new Exception("CsvPath nije podešen u App.config.");
+                throw new Exception("Neispravna vrijednost u App.config za: " + key);
             }
 
-            if (string.IsNullOrWhiteSpace(CountryCode))
+            return result;
+        }
+
+        private int ReadInt(string key)
+        {
+            string value = ConfigurationManager.AppSettings[key];
+
+            if (!int.TryParse(value, out int result))
             {
-                throw new Exception("CountryCode nije podešen u App.config.");
+                throw new Exception("Neispravna vrijednost u App.config za: " + key);
             }
 
-            if (!DateTime.TryParse(selectedDateText, out DateTime selectedDate))
-            {
-                throw new Exception("SelectedDate nije validan u App.config.");
-            }
-
-            if (!int.TryParse(batchSizeText, out int batchSize) || batchSize <= 0)
-            {
-                throw new Exception("BatchSize nije validan u App.config.");
-            }
-
-            SelectedDate = selectedDate.Date;
-            BatchSize = batchSize;
+            return result;
         }
     }
 }
