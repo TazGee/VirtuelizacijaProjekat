@@ -1,6 +1,12 @@
-﻿namespace Client.Filters
+﻿using System;
+
+namespace Client.Filters
 {
-    internal class DataFilter
+    public class DataFilter
     {
+        public bool IsSelectedDate(DateTime timestampLocal, DateTime selectedDate)
+        {
+            return timestampLocal.Date == selectedDate.Date;
+        }
     }
 }

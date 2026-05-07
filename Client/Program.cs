@@ -1,9 +1,9 @@
-﻿using Common.Contracts;
-using Common.Faults;
+﻿using Client.Config;
+using Client.CSV;
+using Client.Services;
 using Common.Models;
 using System;
 using System.Collections.Generic;
-using System.ServiceModel;
 
 namespace Client
 {
@@ -11,83 +11,43 @@ namespace Client
     {
         static void Main(string[] args)
         {
-            ChannelFactory<IConsumptionService> factory = null;
-            IConsumptionService proxy = null;
-
             try
             {
-                factory = new ChannelFactory<IConsumptionService>("ConsumptionServiceEndpoint");
-                proxy = factory.CreateChannel();
+                AppSettingsReader settings = new AppSettingsReader();
 
-                SessionData meta = new SessionData
-                {
-                    CountryCode = "DE",
-                    Date = DateTime.Today,
-                    SourceFileName = "time_series_15min_singleindex.csv",
-                    TotalSamples = 2,
-                    BatchSize = 16
-                };
+                Console.WriteLine("CSV path: " + settings.CsvPath);
+                Console.WriteLine("Country: " + settings.CountryCode);
+                Console.WriteLine("Selected date: " + settings.SelectedDate.ToString("yyyy-MM-dd"));
+                Console.WriteLine("Batch size: " + settings.BatchSize);
+                Console.WriteLine();
 
-                ServiceResponse startResponse = proxy.StartSession(meta);
-                Console.WriteLine(startResponse.Message);
+                CsvParser parser = new CsvParser(
+                    settings.CsvPath,
+                    settings.CountryCode,
+                    settings.SelectedDate);
 
-                List<LoadSample> samples = new List<LoadSample>
-                {
-                    new LoadSample
-                    {
-                        TimestampUtc = DateTime.UtcNow,
-                        TimestampLocal = DateTime.Now,
-                        ActualMW = 100,
-                        ForecastMW = 120,
-                        CumulativeMWh = 25,
-                        CountryCode = "DE",
-                        RowIndex = 1
-                    },
-                    new LoadSample
-                    {
-                        TimestampUtc = DateTime.UtcNow.AddMinutes(15),
-                        TimestampLocal = DateTime.Now.AddMinutes(15),
-                        ActualMW = 110,
-                        ForecastMW = 125,
-                        CumulativeMWh = 52.5,
-                        CountryCode = "DE",
-                        RowIndex = 2
-                    }
-                };
+                List<LoadSample> samples = parser.Parse();
 
-                ServiceResponse batchResponse = proxy.PushBatch(samples);
-                Console.WriteLine(batchResponse.Message);
+                Console.WriteLine("Validnih uzoraka: " + samples.Count);
+                Console.WriteLine("Problematični redovi su upisani u rejected_client.csv.");
+                Console.WriteLine();
 
-                ServiceResponse endResponse = proxy.EndSession();
-                Console.WriteLine(endResponse.Message);
+                ConsumptionClient consumptionClient = new ConsumptionClient();
 
-                ((IClientChannel)proxy).Close();
-                factory.Close();
-            }
-            catch (FaultException<ValidationFault> ex)
-            {
-                Console.WriteLine("Validation fault: " + ex.Detail.Message);
-            }
-            catch (FaultException<DataFormatFault> ex)
-            {
-                Console.WriteLine("Data format fault: " + ex.Detail.Message);
+                consumptionClient.SendSamples(
+                    samples,
+                    settings.CountryCode,
+                    settings.SelectedDate,
+                    settings.CsvPath,
+                    settings.BatchSize);
             }
             catch (Exception ex)
             {
                 Console.WriteLine("Greška: " + ex.Message);
-
-                if (proxy != null)
-                {
-                    ((IClientChannel)proxy).Abort();
-                }
-
-                if (factory != null)
-                {
-                    factory.Abort();
-                }
             }
 
-            Console.WriteLine("Kraj testa.");
+            Console.WriteLine();
+            Console.WriteLine("Client završen.");
             Console.ReadLine();
         }
     }
