@@ -11,13 +11,13 @@ namespace Server.Storage
         {
             rejectsPath = Path.Combine(sessionDirectory, "rejects.csv");
 
-            if (!File.Exists(rejectsPath))
+            if (!File.Exists(rejectsPath) || new FileInfo(rejectsPath).Length == 0)
             {
                 File.WriteAllText(rejectsPath, "Reason,OriginalRow" + Environment.NewLine);
             }
         }
 
-        public void WriteRejected(string reason, string originalRow)
+        public void WriteRejected(string reason, string originalRow)    
         {
             if (originalRow == null)
             {
