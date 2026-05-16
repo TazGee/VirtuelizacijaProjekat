@@ -38,17 +38,8 @@ namespace Server.Services
 
         public ServiceResponse StartSession(SessionData meta)
         {
-            if (meta == null)
-            {
-                throw new FaultException<ValidationFault>(
-                    new ValidationFault("Session data is null."));
-            }
-
-            if (string.IsNullOrWhiteSpace(meta.CountryCode))
-            {
-                throw new FaultException<ValidationFault>(
-                    new ValidationFault("CountryCode is required."));
-            }
+            ValidateSessionFormat(meta);
+            ValidateSessionRules(meta);
 
             currentSession = meta;
             lastCumulativeMWh = -1;
@@ -86,45 +77,41 @@ namespace Server.Services
                     new ValidationFault("Session is not started. Call StartSession first."));
             }
 
-            if (samples == null || samples.Count == 0)
-            {
-                throw new FaultException<ValidationFault>(
-                    new ValidationFault("Batch is empty."));
-            }
+            ValidateBatchFormat(samples);
+            ValidateBatchRules(samples);
 
             using (StreamWriter writer = new StreamWriter(sessionFilePath, true))
             {
                 foreach (LoadSample sample in samples)
                 {
+                    string formatError;
                     string validationError;
 
-                    if (!TryValidateSample(sample, out validationError))
+                    if (!TryValidateSampleFormat(sample, out formatError))
                     {
                         string originalRow = ConvertSampleToCsvLine(sample);
+                        WriteRejected(formatError, originalRow);
 
-                        if (rejectedWriter != null)
-                        {
-                            rejectedWriter.WriteRejected(validationError, originalRow);
-                        }
+                        throw new FaultException<DataFormatFault>(
+                            new DataFormatFault(formatError));
+                    }
+
+                    if (!TryValidateSampleRules(sample, out validationError))
+                    {
+                        string originalRow = ConvertSampleToCsvLine(sample);
+                        WriteRejected(validationError, originalRow);
 
                         throw new FaultException<ValidationFault>(
                             new ValidationFault(validationError));
                     }
-
                     writer.WriteLine(ConvertSampleToCsvLine(sample));
-
                     lastCumulativeMWh = sample.CumulativeMWh;
                 }
             }
-
             totalReceivedSamples += samples.Count;
-
             Console.WriteLine("blok primljen: " + samples.Count + " uzoraka.");
-
             RaiseBatchReceived(samples.Count, totalReceivedSamples);
-
             List<WarningEventArgs> warnings = analytics.AnalyzeBatch(samples);
-
             foreach (WarningEventArgs warning in warnings)
             {
                 RaiseWarning(warning);
@@ -147,11 +134,8 @@ namespace Server.Services
 
             string countryCode = currentSession.CountryCode;
             DateTime date = currentSession.Date;
-
             Console.WriteLine("prenos završen.");
-
             RaiseTransferCompleted(countryCode, date, "Transfer completed.");
-
             currentSession = null;
             sessionDirectory = null;
             sessionFilePath = null;
@@ -166,53 +150,145 @@ namespace Server.Services
             };
         }
 
-        private bool TryValidateSample(LoadSample sample, out string error)
+        private void ValidateSessionFormat(SessionData meta)
+        {
+            if (meta == null)
+            {
+                throw new FaultException<DataFormatFault>(
+                    new DataFormatFault("StartSession message has invalid format: session data is null."));
+            }
+
+            if (string.IsNullOrWhiteSpace(meta.CountryCode))
+            {
+                throw new FaultException<DataFormatFault>(
+                    new DataFormatFault("StartSession message has invalid format: CountryCode is missing."));
+            }
+
+            if (meta.Date == default(DateTime))
+            {
+                throw new FaultException<DataFormatFault>(
+                    new DataFormatFault("StartSession message has invalid format: Date is not valid."));
+            }
+
+            if (string.IsNullOrWhiteSpace(meta.SourceFileName))
+            {
+                throw new FaultException<DataFormatFault>(
+                    new DataFormatFault("StartSession message has invalid format: SourceFileName is missing."));
+            }
+        }
+
+        private void ValidateSessionRules(SessionData meta)
+        {
+            if (meta.TotalSamples <= 0)
+            {
+                throw new FaultException<ValidationFault>(
+                    new ValidationFault("TotalSamples must be greater than 0."));
+            }
+
+            if (meta.BatchSize <= 0)
+            {
+                throw new FaultException<ValidationFault>(
+                    new ValidationFault("BatchSize must be greater than 0."));
+            }
+        }
+
+        private void ValidateBatchFormat(List<LoadSample> samples)
+        {
+            if (samples == null)
+            {
+                throw new FaultException<DataFormatFault>(
+                    new DataFormatFault("PushBatch message has invalid format: samples list is null."));
+            }
+
+            if (string.IsNullOrWhiteSpace(sessionFilePath))
+            {
+                throw new FaultException<DataFormatFault>(
+                    new DataFormatFault("Server session file path is not initialized."));
+            }
+        }
+
+        private void ValidateBatchRules(List<LoadSample> samples)
+        {
+            if (samples.Count == 0)
+            {
+                throw new FaultException<ValidationFault>(
+                    new ValidationFault("Batch is empty."));
+            }
+        }
+
+        private bool TryValidateSampleFormat(LoadSample sample, out string error)
         {
             error = string.Empty;
-
             if (sample == null)
             {
-                error = "Sample is null.";
+                error = "Sample has invalid format: sample is null.";
                 return false;
             }
-
             if (sample.TimestampUtc == default(DateTime))
             {
-                error = "TimestampUtc is not valid.";
+                error = "Sample has invalid format: TimestampUtc is not valid.";
                 return false;
             }
-
             if (sample.TimestampLocal == default(DateTime))
             {
-                error = "TimestampLocal is not valid.";
+                error = "Sample has invalid format: TimestampLocal is not valid.";
                 return false;
             }
+            if (string.IsNullOrWhiteSpace(sample.CountryCode))
+            {
+                error = "Sample has invalid format: CountryCode is missing.";
+                return false;
+            }
+            if (double.IsNaN(sample.ActualMW) || double.IsInfinity(sample.ActualMW))
+            {
+                error = "Sample has invalid format: ActualMW is NaN or Infinity.";
+                return false;
+            }
+            if (double.IsNaN(sample.ForecastMW) || double.IsInfinity(sample.ForecastMW))
+            {
+                error = "Sample has invalid format: ForecastMW is NaN or Infinity.";
+                return false;
+            }
+            if (double.IsNaN(sample.CumulativeMWh) || double.IsInfinity(sample.CumulativeMWh))
+            {
+                error = "Sample has invalid format: CumulativeMWh is NaN or Infinity.";
+                return false;
+            }
+            return true;
+        }
 
+        private bool TryValidateSampleRules(LoadSample sample, out string error)
+        {
+            error = string.Empty;
             if (sample.ActualMW < 0)
             {
                 error = "ActualMW must be greater than or equal to 0.";
                 return false;
             }
-
             if (sample.ForecastMW < 0)
             {
                 error = "ForecastMW must be greater than or equal to 0.";
                 return false;
             }
-
             if (sample.CumulativeMWh < lastCumulativeMWh)
             {
                 error = "CumulativeMWh must grow monotonically inside the day.";
                 return false;
             }
-
             if (sample.CountryCode != currentSession.CountryCode)
             {
                 error = "Sample CountryCode does not match session CountryCode.";
                 return false;
             }
-
             return true;
+        }
+
+        private void WriteRejected(string reason, string originalRow)
+        {
+            if (rejectedWriter != null)
+            {
+                rejectedWriter.WriteRejected(reason, originalRow);
+            }
         }
 
         private string ConvertSampleToCsvLine(LoadSample sample)
@@ -221,7 +297,6 @@ namespace Server.Services
             {
                 return "";
             }
-
             return sample.RowIndex + "," +
                    sample.TimestampUtc.ToString("o") + "," +
                    sample.TimestampLocal.ToString("o") + "," +
@@ -230,7 +305,6 @@ namespace Server.Services
                    sample.CumulativeMWh + "," +
                    sample.CountryCode;
         }
-
         private void RaiseTransferStarted(string countryCode, DateTime date, string message)
         {
             if (OnTransferStarted != null)
@@ -238,7 +312,6 @@ namespace Server.Services
                 OnTransferStarted(this, new TransferEventArgs(countryCode, date, message));
             }
         }
-
         private void RaiseBatchReceived(int batchSize, int totalReceived)
         {
             if (OnBatchReceived != null)
@@ -249,7 +322,6 @@ namespace Server.Services
                     "Batch received."));
             }
         }
-
         private void RaiseTransferCompleted(string countryCode, DateTime date, string message)
         {
             if (OnTransferCompleted != null)
@@ -257,7 +329,6 @@ namespace Server.Services
                 OnTransferCompleted(this, new TransferEventArgs(countryCode, date, message));
             }
         }
-
         private void RaiseWarning(WarningEventArgs warning)
         {
             if (OnWarningRaised != null)
